@@ -1,0 +1,40 @@
+version: '3.7'
+services:
+  nodejs-api:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    ports:
+      - "3081:3081"
+    container_name: nodejs-api
+    links:
+      - mongo-db
+    network_mode: bridge
+
+  mongo-db:
+    image: mongo
+    ports:
+      - "27017:27017"
+    container_name: mongo-db
+    volumes:
+      - /data/nodejs/nodejs-restapi-mongo/db/:/data/db
+    network_mode: bridge
+
+
+  nginx:
+    image: nginx:1.18.0
+    container_name: nginx
+    logging:
+      driver: journald
+    volumes:
+      - /data/dockerized_env/gerrit/nginx/conf.d/:/etc/nginx/conf.d/
+      - /data/dockerized_env/gerrit/nginx/certs/:/etc/pki/tls/certs/:ro
+      - /data/dockerized_env/gerrit/nginx/private/:/etc/pki/tls/private/:ro
+    restart: on-failure:3                   #restart a maximum of 3 times, only if exit on error code
+    ports:
+      - '80:80'                           #used for redirection to HTTPS only
+      - '443:443'   
+    links:
+      - nodejs-api:nodejs-api             #main wapplication endpoint
+    network_mode: bridge
+
